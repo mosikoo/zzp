@@ -1,0 +1,64 @@
+#! /usr/bin/env node
+
+const inquirer = require('inquirer');
+const path = require('path');
+const chalk = require('chalk');
+const fs = require('fs');
+const child_process = require('child_process');
+const pkg = require(path.resolve(process.cwd(), 'package.json')) || {};
+const config = require('./config');
+const questions = [
+  {
+    type: 'input',
+    name: 'name',
+    message: 'What\'s your project name. ',
+    default: function() {
+      return pkg.name || ''
+    }
+  },
+  {
+    type: 'list',
+    name: 'type',
+    message: 'which environment will you publish, daily or publish？',
+    choices: ['daily', 'publish']
+  },
+  {
+    type: 'input',
+    name: 'version',
+    message: 'Please input the project version, i.e. "1.0.1". ',
+    validate: function(version) {
+      if(/^([0-9]{1,2}\.){2}[0-9]{1,2}$/.test(version)) {
+        var files = [];
+        try {
+          // git文件取branch得优化下。
+          files = fs.readdirSync(path.resolve(process.cwd(), config.gitDirBranch));
+        } catch(err) {
+          console.log(`\n\n  ${chalk.red('The git files is non-existent!')}`);
+          process.exit(0);
+        }
+        if (~files.indexOf(version)) {
+          return true;
+        }
+        return 'the version is non-existent, input again！'
+      }
+      return 'Please input the correct version, i.e. "1.0.1"'
+    }
+  }
+];
+
+function stat (path, errStr, callback) {
+  const files = fs.readdirSync(path);
+  if (files.length === 0) {
+    console.log(errStr);
+    pub() // 尽量从哪错哪里开始
+  }
+  callback(files);
+}
+function pub() {
+  inquirer.prompt(questions).then(function(content) {
+    console.log(JSON.stringify(content));
+    child_process.execFile(path.resolve('./shell/daily.sh'));
+  });
+}
+
+pub();
