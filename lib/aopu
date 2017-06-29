@@ -46,18 +46,24 @@ const questions = [
   }
 ];
 
-function stat (path, errStr, callback) {
-  const files = fs.readdirSync(path);
-  if (files.length === 0) {
-    console.log(errStr);
-    pub() // 尽量从哪错哪里开始
-  }
-  callback(files);
+function execSh(commands) {
+  commands.forEach(function(item) {
+    console.log((`\n${chalk.cyan('executing:')} ${item.command}`));
+    var output;
+    try {
+      output = child_process.execSync(item.command, { encoding: 'utf8' });
+
+    } catch(err) {
+      console.log(err.stdout);
+    }
+    output && process.stdout.write(output);
+  });
 }
+
 function pub() {
   inquirer.prompt(questions).then(function(content) {
-    console.log(JSON.stringify(content));
-    child_process.execFile(path.resolve('./shell/daily.sh'));
+    execSh(config.commands(content));
+    console.log(chalk.green(`  publish "${content.type}/${content.version}" successfully!`));
   });
 }
 
