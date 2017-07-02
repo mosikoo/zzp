@@ -5,8 +5,10 @@ const path = require('path');
 const chalk = require('chalk');
 const fs = require('fs');
 const child_process = require('child_process');
-const pkg = require(path.resolve(process.cwd(), 'package.json')) || {};
 const config = require('./config');
+const files = require('./getfiles');
+const qs = require('./questions');
+
 const questions = [
   {
     type: 'input',
@@ -69,16 +71,39 @@ var execSh = function(item) {
   });
 }
 
-var pub = async function () {
-  inquirer.prompt(questions).then(function(content) {
-    const commands = config.commands(content);
-    (async function(){
-      for (var i = 0; i < commands.length; i += 1) {
-        await execSh(commands[i]);
-      }
-      console.log(chalk.green(`publish "${content.type}/${content.version}" successfully!`));
-    })();    
+// var pub = async function () {
+//   inquirer.prompt(questions).then(function(content) {
+//     const commands = config.commands(content);
+//     (async function(){
+//       for (var i = 0; i < commands.length; i += 1) {
+//         await execSh(commands[i]);
+//       }
+//       console.log(chalk.green(`publish "${content.type}/${content.version}" successfully!`));
+//     })();    
+//   });
+// }
+
+const info = [];
+const defaultData = {}; // 默认选项
+function recursiveQuestion(content, index) {
+  if (content.files.length <= index) {
+    console.log(info);
+    return;
+  }
+  const name = content.files[index];
+  console.log(`\n\n  ${chalk.green(`Please select follow Options for 「${chalk.blue(name)}」project`)}\n`);
+  inquirer.prompt(qs.questions(name, defaultData)).then(subContent => {
+    defaultData.type = subContent.type; // 记忆type类型为默认值
+    info.push(Object.assign({}, { name }, subContent));
+    recursiveQuestion(content, index + 1)
   });
+}
+function pub () {
+  if (qs.fileChoiceQuestion.type) {
+    inquirer.prompt(qs.fileChoiceQuestion).then((content) => {
+      recursiveQuestion(content, 0);
+    });
+  }
 }
 
 pub();
