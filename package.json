@@ -1,6 +1,6 @@
 {
   "name": "aopu",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "automation publish for git",
   "main": "index.js",
   "scripts": {
